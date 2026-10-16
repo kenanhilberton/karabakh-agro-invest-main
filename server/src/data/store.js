@@ -44,6 +44,7 @@ export {
   findApplicationByCode,
   insertApplication,
   updateApplication,
+  updateApplicationDocuments,
   // notifications
   insertNotification,
   listNotifications,

@@ -55,9 +55,11 @@ export default function MyGovLogin() {
   const { loginWithMyGov, user } = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+  // Opened from the registration page ("MyGov ilə qeydiyyatdan keç").
+  const isRegister = location.state?.mode === 'register';
 
   const [lang, setLang] = useState('az');
-  const [other, setOther] = useState(false);
+  const [other, setOther] = useState(isRegister);
   const [fin, setFin] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -201,8 +203,14 @@ export default function MyGovLogin() {
           {other && (
             <div className="mt-7 border-t border-slate-100 pt-6">
               <div className="mx-auto max-w-md">
-                <h3 className="text-sm font-bold text-slate-900">{t.finTitle}</h3>
-                <p className="mt-0.5 text-xs text-slate-500">{t.finHint}</p>
+                <h3 className="text-sm font-bold text-slate-900">
+                  {isRegister ? 'FİN ilə qeydiyyat' : t.finTitle}
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {isRegister
+                    ? 'mygov ID hesabınıza bağlı FİN-i daxil edin. Hesab hələ yoxdursa, qeydiyyat formasına keçəcəksiniz.'
+                    : t.finHint}
+                </p>
                 <form onSubmit={submit} className="mt-3 flex gap-2">
                   <input
                     className="input"
@@ -212,10 +220,19 @@ export default function MyGovLogin() {
                     autoFocus
                   />
                   <button className="btn-blue shrink-0" disabled={busy}>
-                    {busy ? t.busy : t.submit}
+                    {busy ? t.busy : isRegister ? 'Davam et' : t.submit}
                   </button>
                 </form>
                 {error && <p className="mt-2 text-sm text-flag-red">{error}</p>}
+                {isRegister && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/register', { state: { voen: fin.trim() } })}
+                    className="btn-primary mt-3 w-full"
+                  >
+                    {error ? 'Bu FİN ilə qeydiyyatdan keç' : 'Qeydiyyat formasına keç'}
+                  </button>
+                )}
                 {accounts.length > 0 && (
                   <div className="mt-4">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -248,8 +265,11 @@ export default function MyGovLogin() {
           <span>{t.demo}</span>
         </div>
         <div className="mt-3 text-center">
-          <Link to="/login" className="text-sm font-semibold text-slate-500 hover:text-[#0d6efd]">
-            ← {t.back}
+          <Link
+            to={isRegister ? '/register' : '/login'}
+            className="text-sm font-semibold text-slate-500 hover:text-[#0d6efd]"
+          >
+            ← {isRegister ? 'Qeydiyyat səhifəsinə qayıt' : t.back}
           </Link>
         </div>
       </main>

@@ -351,6 +351,14 @@ export async function updateApplication(id, { status, updatedAt, timeline }) {
   );
 }
 
+// Attaches documents to an application without touching the review status.
+export async function updateApplicationDocuments(id, { files, updatedAt, timeline }) {
+  await query(
+    'UPDATE applications SET files = $2, updated_at = $3, timeline = $4 WHERE id = $1',
+    [id, JSON.stringify(files || []), updatedAt, JSON.stringify(timeline || [])]
+  );
+}
+
 /* ------------------------- notifications ------------------------- */
 
 function rowToNotification(r) {

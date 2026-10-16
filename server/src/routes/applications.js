@@ -8,6 +8,7 @@ import {
   findApplicationByCode,
   listApplications,
   updateApplication,
+  updateApplicationDocuments,
   setLandStatus,
   getUsers,
   findUserByVoen,
@@ -66,8 +67,9 @@ async function makeTrackingCode() {
 
 // Publicly visible shape (no internal notes). Uploaded documents are only
 // included for authenticated callers (`includeFiles`), never on the public
-// QR tracking page.
-function publicView(app, { includeFiles = false } = {}) {
+// QR tracking page. `canManage` tells the client whether the caller may attach
+// additional documents (owner or staff).
+function publicView(app, { includeFiles = false, canManage = false } = {}) {
   return {
     id: app.id,
     trackingCode: app.trackingCode,
@@ -96,6 +98,7 @@ function publicView(app, { includeFiles = false } = {}) {
     score: app.score || null,
     roi: app.roi || null,
     ...(includeFiles ? { files: app.files || [] } : {}),
+    canManage,
     trackUrl: `/track/${app.trackingCode}`
   };
 }
@@ -105,11 +108,81 @@ router.get('/', optionalAuth, requireAuth, async (req, res) => {
   res.json(list.map((a) => publicView(a, { includeFiles: true })));
 });
 
-// Public tracking endpoint used by the QR tracker page
-router.get('/track/:code', async (req, res) => {
+// Public tracking endpoint used by the QR tracker page. When the caller is the
+// applicant (or staff) the uploaded documents are returned as well.
+router.get('/track/:code', optionalAuth, async (req, res) => {
   const app = await findApplicationByCode(req.params.code);
   if (!app) return res.status(404).json({ error: 'Bu kodla müraciət tapılmadı' });
-  res.json(publicView(app));
+  const staff = !!req.user && (req.user.role === 'operator' || req.user.role === 'admin');
+  const owner = !!req.user && app.voen === req.user.voen;
+  const canManage = staff || owner;
+  res.json(publicView(app, { includeFiles: canManage, canManage }));
+});
+
+// The applicant (or staff) attaches additional documents to an application that
+// is still open — this is the "Əlavə sənəd tələb olunur" stage follow-up.
+router.post('/track/:code/documents', requireAuth, async (req, res) => {
+  const app = await findApplicationByCode(req.params.code);
+  if (!app) return res.status(404).json({ error: 'Müraciət tapılmadı' });
+
+  const staff = req.user.role === 'operator' || req.user.role === 'admin';
+  if (!staff && app.voen !== req.user.voen) {
+    return res.status(403).json({ error: 'Bu müraciətə giriş icazəniz yoxdur' });
+  }
+  if (app.status === 'approved' || app.status === 'rejected') {
+    return res.status(409).json({ error: 'Yekunlaşmış müraciətə sənəd əlavə etmək mümkün deyil' });
+  }
+
+  const now = new Date().toISOString();
+  const incoming = Array.isArray(req.body?.files) ? req.body.files : [];
+  // The files are uploaded beforehand via POST /upload; here we only accept the
+  // resulting metadata so we never trust a raw path from the client body.
+  const added = incoming
+    .filter((f) => f && typeof f === 'object' && (f.url || f.path))
+    .map((f) => {
+      const url = String(f.url || f.path);
+      return {
+        id: String(f.id || url),
+        originalName: String(f.originalName || f.name || 'sənəd'),
+        mime: f.mime || '',
+        size: Number(f.size) || 0,
+        url,
+        path: String(f.path || url),
+        uploadedAt: f.uploadedAt || now
+      };
+    });
+  if (!added.length) {
+    return res.status(400).json({ error: 'Heç bir sənəd göndərilmədi' });
+  }
+
+  const files = [...(app.files || []), ...added];
+  const timeline = [
+    ...(app.timeline || []),
+    {
+      status: app.status,
+      label: stageLabel(app.status),
+      at: now,
+      note: `${added.length} əlavə sənəd yükləndi`
+    }
+  ];
+
+  const updated = { ...app, files, timeline, updatedAt: now };
+  await updateApplicationDocuments(app.id, updated);
+
+  const staffUsers = (await getUsers()).filter((u) => u.role === 'operator' || u.role === 'admin');
+  await Promise.all(
+    staffUsers.map((u) =>
+      notify(u, {
+        type: 'documents_added',
+        title: 'Müraciətə əlavə sənəd yükləndi',
+        body: `${app.applicantName} — ${app.districtName} · ${app.trackingCode}`,
+        link: '/admin',
+        applicationId: app.id
+      })
+    )
+  );
+
+  res.json(publicView(updated, { includeFiles: true, canManage: true }));
 });
 
 router.get('/:id', requireAuth, async (req, res) => {

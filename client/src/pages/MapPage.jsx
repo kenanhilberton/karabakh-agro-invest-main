@@ -388,13 +388,6 @@ export default function MapPage() {
       purposeLabel: meta.crops.find((c) => c.key === p)?.label || s.purposeLabel
     }));
 
-  // "«X» ilə müraciətə keç" — open the application wizard for this plot with the
-  // recommended crop preselected.
-  const applyWithCrop = (p) => {
-    if (!selected?.id) return;
-    navigate(`/apply/${selected.id}?purpose=${encodeURIComponent(p)}`);
-  };
-
   let ndviBtn = 'btn-ghost';
   if (showNdvi) ndviBtn = 'btn-primary';
   let labelsBtn = 'btn-ghost';
@@ -807,7 +800,7 @@ export default function MapPage() {
                 onPurpose={selectCrop}
                 onArea={(a) => setSelected((s) => ({ ...s, areaHa: Number(a) }))}
               />
-              <AdvisorPanel land={selected} onPickCrop={applyWithCrop} />
+              <AdvisorPanel land={selected} />
               <NdviPanel land={selected} />
             </>
           ) : (

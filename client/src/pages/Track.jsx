@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { useSession } from '../session.jsx';
 import Receipt from '../components/Receipt.jsx';
 import Icon from '../components/Icon.jsx';
+import FileUploadDropzone from '../components/FileUploadDropzone.jsx';
 import { STAGES, STATUS_COLORS, TECH_LABELS, VALUE_CHAIN_STEPS, IMPACT_METRICS } from '../constants.js';
 
 const STATUS_META = {
@@ -26,7 +27,7 @@ const APPLICANT_HINT = {
   },
   documents: {
     title: 'Əlavə sənəd tələb olunur',
-    text: 'Müraciəti tamamlamaq üçün buraxdığınız əlaqə vasitələri ilə əlavə sənədləri təqdim edin.'
+    text: 'Müraciəti tamamlamaq üçün aşağıdakı bölmədən əlavə sənədləri yükləyib göndərin.'
   },
   approved: {
     title: 'Təbriklər — müraciət təsdiqləndi!',
@@ -187,7 +188,13 @@ export default function Track() {
                 compact
               />
             )}
-            {!showReceipt && <TrackResult app={app} onReceipt={() => setShowReceipt(true)} />}
+            {!showReceipt && (
+              <TrackResult
+                app={app}
+                onReceipt={() => setShowReceipt(true)}
+                onDocumentsUpdated={setApp}
+              />
+            )}
             {showReceipt && (
               <div>
                 <div className="no-print mb-3 flex justify-between">
@@ -216,7 +223,7 @@ export default function Track() {
   );
 }
 
-function TrackResult({ app, onReceipt }) {
+function TrackResult({ app, onReceipt, onDocumentsUpdated }) {
   const [copied, setCopied] = useState(false);
   const [shared, setShared] = useState(false);
   const qrRef = useRef(null);
@@ -346,6 +353,10 @@ function TrackResult({ app, onReceipt }) {
               </div>
             </div>
           </div>
+
+          {app.status === 'documents' && (
+            <DocumentsPanel app={app} onUpdated={onDocumentsUpdated} />
+          )}
 
           <div className="card p-5">
             <div className="flex items-center justify-between">
@@ -506,6 +517,121 @@ function TrackResult({ app, onReceipt }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DocumentsPanel({ app, onUpdated }) {
+  const [pending, setPending] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const attached = app.files || [];
+
+  if (!app.canManage) {
+    return (
+      <div className="card p-5 ring-1 ring-amber-200">
+        <div className="flex items-center gap-2">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600">
+            <Icon name="upload" className="h-4 w-4" />
+          </span>
+          <div>
+            <h3 className="text-sm font-bold text-ink-900">Əlavə sənəd tələb olunur</h3>
+            <p className="text-xs text-slate-500">
+              Sənəd əlavə etmək üçün müraciətin sahibi kimi daxil olun.
+            </p>
+          </div>
+        </div>
+        <Link to="/login" className="btn-primary mt-4 inline-flex">
+          <Icon name="shield" className="h-4 w-4" /> Daxil ol
+        </Link>
+      </div>
+    );
+  }
+
+  const send = async () => {
+    if (!pending.length) {
+      setError('Əvvəlcə ən azı bir sənəd seçin');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      const updated = await api.addApplicationDocuments(app.trackingCode, pending);
+      setPending([]);
+      setSaved(true);
+      onUpdated(updated);
+    } catch (e) {
+      setError(e.message || 'Sənədlər göndərilmədi');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card p-5 ring-1 ring-amber-200">
+      <div className="flex items-center gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600">
+          <Icon name="upload" className="h-4 w-4" />
+        </span>
+        <div>
+          <h3 className="text-sm font-bold text-ink-900">Əlavə sənəd tələb olunur</h3>
+          <p className="text-xs text-slate-500">
+            Operator əlavə sənəd istəyir. Faylları yükləyib göndərin.
+          </p>
+        </div>
+      </div>
+
+      {attached.length > 0 && (
+        <ul className="mt-4 space-y-1.5">
+          {attached.map((f) => (
+            <li
+              key={f.id}
+              className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600"
+            >
+              <Icon name="file" className="h-3.5 w-3.5 text-brand-600" />
+              <a
+                href={f.path || f.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 truncate hover:text-brand-700 hover:underline"
+              >
+                {f.originalName || f.name}
+              </a>
+              <span className="chip bg-white text-[10px] text-slate-500">Yüklənib</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-4">
+        <FileUploadDropzone
+          files={pending}
+          onFilesChange={(files) => {
+            setPending(files);
+            setError('');
+            setSaved(false);
+          }}
+          hint="PDF, DOCX, XLSX, JPG, PNG · max 10 MB"
+        />
+      </div>
+
+      {error && <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-flag-red">{error}</p>}
+      {saved && (
+        <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">
+          ✓ Sənədlər müraciətə əlavə olundu.
+        </p>
+      )}
+
+      <button
+        type="button"
+        className="btn-primary mt-3 w-full"
+        onClick={send}
+        disabled={saving || pending.length === 0}
+      >
+        {saving ? 'Göndərilir…' : 'Sənədləri göndər'}
+      </button>
     </div>
   );
 }

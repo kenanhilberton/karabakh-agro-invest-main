@@ -116,6 +116,12 @@ export const api = {
   applications: () => request('/applications', { auth: true }),
   application: (id) => request(`/applications/${id}`, { auth: true }),
   track: (code) => request(`/applications/track/${code}`),
+  addApplicationDocuments: (code, files) =>
+    request(`/applications/track/${encodeURIComponent(code)}/documents`, {
+      method: 'POST',
+      body: { files },
+      auth: true
+    }),
   updateStatus: (id, status, note) =>
     request(`/applications/${id}/status`, { method: 'PATCH', body: { status, note }, auth: true }),
 

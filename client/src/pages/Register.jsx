@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useSession } from '../session.jsx';
 import Icon from '../components/Icon.jsx';
+import MyGovLogo from '../components/MyGovLogo.jsx';
 
 const EMPTY = { voen: '', name: '', company: '', email: '', phone: '', password: '', confirm: '', userType: 'sahibkar' };
 
@@ -32,7 +33,8 @@ const TYPE_LABEL = { sahibkar: 'Sahibkar', investor: 'İnvestor', user: 'Sadə i
 export default function Register() {
   const { user, register } = useSession();
   const navigate = useNavigate();
-  const [form, setForm] = useState(EMPTY);
+  const location = useLocation();
+  const [form, setForm] = useState({ ...EMPTY, voen: location.state?.voen || '' });
   const [verify, setVerify] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -143,6 +145,23 @@ export default function Register() {
         </div>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-ink-900">Hesab yaradın</h1>
         <p className="mt-1 text-sm text-slate-500">{TYPE_DESC[form.userType]}</p>
+
+        <button
+          type="button"
+          onClick={() => navigate('/mygov', { state: { mode: 'register' } })}
+          className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-lg border border-slate-200 bg-white px-4 py-3 font-semibold text-slate-800 shadow-sm transition hover:border-[#0d6efd] hover:bg-[#0d6efd]/5"
+        >
+          <MyGovLogo size="sm" />
+          <span className="text-sm">ilə qeydiyyatdan keç</span>
+        </button>
+
+        <div className="my-5 flex items-center gap-3">
+          <span className="h-px flex-1 bg-slate-200" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            və ya VÖEN / FİN ilə
+          </span>
+          <span className="h-px flex-1 bg-slate-200" />
+        </div>
 
         <form className="card mt-6 p-6" onSubmit={submit}>
           <div className="space-y-4">
