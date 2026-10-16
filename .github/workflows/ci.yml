@@ -1,0 +1,143 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+  POSTGRES_VERSION: '18'
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./karabakh-agro-invest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies (client)
+        run: cd client && npm ci
+
+      - name: Install dependencies (server)
+        run: cd server && npm ci
+
+      - name: Lint client
+        run: cd client && npm run lint 2>/dev/null || echo "No lint script"
+
+      - name: Build client
+        run: cd client && npm run build
+
+      - name: Check server syntax
+        run: node --check server/src/index.js && node --check server/src/middleware/rateLimit.js && node --check server/src/routes/lands.js
+
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./karabakh-agro-invest
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: karabakh_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d karabakh_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies (server)
+        run: cd karabakh-agro-invest/server && npm ci
+
+      - name: Wait for PostgreSQL
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres -d karabakh_test && break
+            sleep 1
+          done
+
+      - name: Initialize test database
+        run: |
+          cd karabakh-agro-invest/server
+          PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=karabakh_test npm run db:init
+
+      - name: Run smoke tests
+        run: |
+          cd karabakh-agro-invest/server
+          PGHOST=localhost PGPORT=5432 PGUSER=postgres PGPASSWORD=postgres PGDATABASE=karabakh_test PORT=4001 &
+          SERVER_PID=$!
+          sleep 5
+          powershell -ExecutionPolicy Bypass -File smoke.ps1
+          powershell -ExecutionPolicy Bypass -File smoke2.ps1
+          kill $SERVER_PID
+
+  build-and-deploy:
+    needs: [lint-and-test, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./karabakh-agro-invest
+          file: ./karabakh-agro-invest/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to staging (optional)
+        if: ${{ secrets.STAGING_HOST != '' }}
+        run: |
+          echo "Deploy to staging..."
+          # ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} "docker pull ghcr.io/${{ github.repository }}:latest && docker-compose up -d"

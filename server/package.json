@@ -1,0 +1,29 @@
+{
+  "name": "karabakh-agro-invest-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "db:init": "node src/db/init-cli.js",
+    "db:reset": "node src/db/init-cli.js --reset",
+    "test": "node --test test/**/*.test.js",
+    "test:watch": "node --watch --test test/**/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.1",
+    "jsonwebtoken": "^9.0.2",
+    "karabakh-agro-invest": "file:..",
+    "multer": "^2.4.0",
+    "pg": "^8.23.1",
+    "pg-mem": "^3.0.14",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^11.1.0"
+  }
+}
