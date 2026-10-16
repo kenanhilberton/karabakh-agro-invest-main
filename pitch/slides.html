@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KarabakhAgroInvest — Təqdimat</title>
+<style>
+  :root{
+    --bg1:#02120d; --bg2:#04352a; --accent:#34d399; --accent2:#38bdf8;
+    --ink:#eafff6; --muted:#9fd8c4; --line:rgba(52,211,153,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg1); color:var(--ink);
+    font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif;
+    overflow:hidden; -webkit-font-smoothing:antialiased;
+  }
+  #progress{position:fixed;top:0;left:0;height:4px;width:0;z-index:50;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s ease}
+  #topbar{position:fixed;top:20px;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:center;padding:0 40px;z-index:40;pointer-events:none}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
+  .brand img{height:34px;width:34px;object-fit:contain;border-radius:8px;background:rgba(255,255,255,.06);padding:3px}
+  .brand span b{color:var(--accent)}
+  .meta{font-size:12px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:11vh 8vw 13vh;background:
+      radial-gradient(900px 600px at 85% -10%,rgba(52,211,153,.16),transparent 60%),
+      radial-gradient(700px 500px at -10% 110%,rgba(56,189,248,.12),transparent 60%),
+      linear-gradient(160deg,var(--bg1),var(--bg2));
+  }
+  .slide.active{display:flex;animation:fade .4s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+  .kicker{font-size:14px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--accent);margin-bottom:18px}
+  h1{font-size:clamp(30px,4.4vw,60px);line-height:1.08;margin:0 0 18px;font-weight:900;letter-spacing:-.02em}
+  h2{font-size:clamp(26px,3.4vw,46px);line-height:1.12;margin:0 0 26px;font-weight:900;letter-spacing:-.02em}
+  .lead{font-size:clamp(16px,1.5vw,22px);color:var(--muted);max-width:60ch;line-height:1.5}
+  .accent{color:var(--accent)}
+  .big{font-size:clamp(40px,7vw,96px);font-weight:900;line-height:1;letter-spacing:-.03em}
+
+  .grid{display:grid;gap:18px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+
+  .card{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:18px;
+    padding:22px 22px;backdrop-filter:blur(4px)}
+  .card .ic{font-size:26px;line-height:1;margin-bottom:12px;display:block}
+  .card h3{margin:0 0 8px;font-size:18px;font-weight:800}
+  .card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+
+  .pipe{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px}
+  .step{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;
+    padding:16px 18px;min-width:150px;flex:1}
+  .step .n{font-size:12px;color:var(--accent);font-weight:800;letter-spacing:.1em}
+  .step .t{font-weight:800;margin-top:4px;font-size:15px}
+  .step .d{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .arrow{color:var(--accent);font-size:20px;font-weight:800}
+
+  .badges{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+  .badge{border:1px solid var(--line);background:rgba(52,211,153,.08);color:var(--ink);
+    padding:9px 15px;border-radius:999px;font-size:14px;font-weight:700}
+  .badge.blue{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.3)}
+
+  .stat{display:flex;flex-direction:column;gap:4px}
+  .stat .v{font-size:clamp(28px,3.4vw,46px);font-weight:900;color:var(--accent);letter-spacing:-.02em}
+  .stat .l{color:var(--muted);font-size:13.5px;font-weight:600}
+
+  .close{font-size:clamp(24px,3.2vw,44px);font-weight:900;letter-spacing:-.02em;margin-top:8px}
+  .close em{color:var(--accent);font-style:normal}
+
+  /* bottom bar */
+  #bottombar{position:fixed;bottom:22px;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:center;padding:0 40px;z-index:40;pointer-events:none}
+  #counter{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.1em}
+  .hint{color:rgba(159,216,196,.6);font-size:12px}
+  .navbtns{display:flex;gap:8px;pointer-events:auto}
+  .navbtns button{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--ink);font-size:16px;cursor:pointer}
+  .navbtns button:hover{background:rgba(52,211,153,.15)}
+
+  /* speaker notes */
+  #notes{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#01100a;border-top:1px solid var(--line);
+    padding:16px 40px;font-size:14px;color:var(--muted);display:none}
+  #notes b{color:var(--accent)}
+  body.notes #notes{display:block}
+
+  @media print{
+    body{overflow:visible;background:#fff}
+    .slide{display:flex !important;position:relative;inset:auto;page-break-after:always;height:100vh;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    #topbar,#bottombar,#progress,#notes{display:none !important}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<div id="topbar">
+  <div class="brand"><img src="logo.png" alt="" onerror="this.style.display='none'"/><span>Karabakh<b>Agro</b>Invest</span></div>
+  <div class="meta">İnvestisiya Müsabiqəsi Portalı · 2026</div>
+</div>
+
+<!-- 1 -->
+<section class="slide active" data-notes="<b>0:00–0:20</b> — Salamlaş, dərhal problemin içinə gir.">
+  <div class="kicker">Hackathon Təqdimatı</div>
+  <h1>Karabakh<span class="accent">Agro</span>Invest</h1>
+  <p class="lead">Qarabağın azad edilmiş torpaqlarını <b>xəritədən seçimdən</b> EKTİS təsdiqinə qədər rəqəmsallaşdıran, AI dəstəkli <b>end-to-end</b> investisiya platforması.</p>
+  <div class="badges" style="margin-top:30px">
+    <span class="badge">🗺️ GIS Xəritə</span>
+    <span class="badge">🤖 AI Məsləhətçi</span>
+    <span class="badge">📈 Agro-ROI</span>
+    <span class="badge blue">🏛️ EKTİS</span>
+    <span class="badge blue">🔐 MyGov ID</span>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide" data-notes="<b>0:00–0:20</b> — 4 ağrı nöqtəsini vurğula. Sonda: 'torpaq boş qalır'.">
+  <div class="kicker">Problem</div>
+  <h2>Torpaq var. <span class="accent">İnvestor isə qərar verə bilmir.</span></h2>
+  <div class="grid g4">
+    <div class="card"><span class="ic">🧭</span><h3>Məlumat dağınıq</h3><p>Sahibkar uyğun torpaq sahəsini tapa bilmir.</p></div>
+    <div class="card"><span class="ic">📄</span><h3>Kağız proses</h3><p>Müraciət əl ilə, şəffaflıq və izləmə yoxdur.</p></div>
+    <div class="card"><span class="ic">📉</span><h3>Riski görmür</h3><p>Gəlirlilik (ROI) əvvəlcədən bilinmir.</p></div>
+    <div class="card"><span class="ic">🏛️</span><h3>İnteqrasiya yox</h3><p>Dövlət sistemləri ilə əlaqə yoxdur.</p></div>
+  </div>
+  <p class="lead" style="margin-top:26px">Nəticə: <b class="accent">torpaq boş qalır.</b></p>
+</section>
+
+<!-- 3 -->
+<section class="slide" data-notes="<b>0:20–0:40</b> — Axını barmaqla göstər. 'Maket deyil, işləyir' cümləsini vurğula.">
+  <div class="kicker">Həllimiz</div>
+  <h2>Bir pəncərədə — <span class="accent">bütün yol</span></h2>
+  <div class="pipe">
+    <div class="step"><div class="n">01</div><div class="t">Xəritə</div><div class="d">Sahə seçimi</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">02</div><div class="t">AI Məsləhətçi</div><div class="d">Nə əkmək?</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">03</div><div class="t">ROI</div><div class="d">Gəlirlilik</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">04</div><div class="t">Müraciət</div><div class="d">4 addım</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">05</div><div class="t">QR + İzləmə</div><div class="d">Şəffaflıq</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">06</div><div class="t">Kanban</div><div class="d">Təsdiq</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">07</div><div class="t">EKTİS</div><div class="d">Sinxron</div></div>
+  </div>
+  <p class="lead" style="margin-top:28px">Statik maket deyil — <b class="accent">tam işlək end-to-end sistem.</b></p>
+</section>
+
+<!-- 4 -->
+<section class="slide" data-notes="<b>0:40–2:10</b> — CANLI DEMO. Addım-addım klik yolu PRESENTATION.md-də. Risk yoxdursa, bütün diqqət buradadır.">
+  <div class="kicker">⭐ Ən vacib hissə</div>
+  <h2>İndi — <span class="accent">canlı demo</span></h2>
+  <div class="grid g4">
+    <div class="card"><span class="ic">1️⃣</span><h3>Xəritə + NDVI</h3><p>Füzuli → 50 ha sahə → peyk qatı.</p></div>
+    <div class="card"><span class="ic">2️⃣</span><h3>AI + ROI</h3><p>Üzümçülük 92 bal · Payback 3,2 il.</p></div>
+    <div class="card"><span class="ic">3️⃣</span><h3>Müraciət + QR</h3><p>4 addım → unikal kod + qəbz.</p></div>
+    <div class="card"><span class="ic">4️⃣</span><h3>Kanban + EKTİS</h3><p>Operator təsdiqi → sinxronlaşdırma.</p></div>
+  </div>
+  <p class="lead" style="margin-top:26px">Demo işləməzsə: növbəti slayda keç və <b>Plan B</b> ilə davam et.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide" data-notes="<b>2:10–2:40</b> — 5 fərqi sürətlə sadala. Hər birini bir cümlə ilə.">
+  <div class="kicker">Fərqlərimiz</div>
+  <h2>Niyə məhz <span class="accent">biz?</span></h2>
+  <div class="grid g3">
+    <div class="card"><span class="ic">✅</span><h3>Tam işlək axın</h3><p>Real baza, JWT, fayl yükləmə, PDF qəbz — maket deyil.</p></div>
+    <div class="card"><span class="ic">🤖</span><h3>Aqro-spesifik AI</h3><p>pH, münbitlik, su, bazar → 0–100 məhsul skoru.</p></div>
+    <div class="card"><span class="ic">🔐</span><h3>Şəffaflıq</h3><p>QR + timeline + çap olunan e-qəbz.</p></div>
+    <div class="card"><span class="ic">🏛️</span><h3>EKTİS-first</h3><p>Kontrakt və data model real sistemə uyğun.</p></div>
+    <div class="card"><span class="ic">🧭</span><h3>Müqayisə + Analitika</h3><p>3 sahə yan-yana · KPI dashboard · funnel.</p></div>
+    <div class="card"><span class="ic">🆔</span><h3>MyGov ID giriş</h3><p>Dövlət identifikasiyası ilə təhlükəsiz giriş.</p></div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide" data-notes="<b>2:10–2:40</b> — Stek nişanlarını sadala. 'Dövlətə hazır arxitektura' mesajı.">
+  <div class="kicker">Texnologiya &amp; İnteqrasiya</div>
+  <h2><span class="accent">Production-ready</span> arxitektura</h2>
+  <div class="badges">
+    <span class="badge">React 18</span>
+    <span class="badge">Vite</span>
+    <span class="badge">Tailwind</span>
+    <span class="badge">Leaflet / MapLibre 3D</span>
+    <span class="badge blue">Node.js + Express</span>
+    <span class="badge blue">PostgreSQL 18 + JSONB</span>
+    <span class="badge blue">JWT + RBAC</span>
+    <span class="badge">OpenAPI 3.0 / Swagger</span>
+    <span class="badge">EKTİS REST (mock)</span>
+    <span class="badge">MyGov ID</span>
+    <span class="badge">23 API smoke test</span>
+  </div>
+  <div class="grid g3" style="margin-top:34px">
+    <div class="card"><span class="ic">🛡️</span><h3>3 rol · RBAC</h3><p>sahibkar · operator · admin</p></div>
+    <div class="card"><span class="ic">🔗</span><h3>REST + JSONB</h3><p>geometry, ROI, timeline çevik saxlanır.</p></div>
+    <div class="card"><span class="ic">📚</span><h3>Canlı API sənədi</h3><p><code>/api-docs</code> üzərində sınaq.</p></div>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide" data-notes="<b>2:40–3:00</b> — Rəqəmləri vurğula, sonra son cümlə. Gözlərini münsiflərə dik. Gülümsə.">
+  <div class="kicker">Təsir &amp; Yekun</div>
+  <h2>Nə <span class="accent">dəyişir?</span></h2>
+  <div class="grid g4">
+    <div class="stat"><span class="v">100+</span><span class="l">potensial torpaq sahəsi</span></div>
+    <div class="stat"><span class="v">4 addım</span><span class="l">onlayn müraciət</span></div>
+    <div class="stat"><span class="v">3,2 il</span><span class="l">orta özünüödəmə</span></div>
+    <div class="stat"><span class="v">0 kağız</span><span class="l">tam rəqəmsal axın</span></div>
+  </div>
+  <p class="lead" style="margin-top:30px">Nazirliyə — <b>bərpa sürəti.</b> İnvestora — <b>az risk.</b></p>
+  <p class="close">Torpaqdan <em>gələcəyə.</em> Təşəkkürlər!</p>
+</section>
+
+<div id="bottombar">
+  <div id="counter">01 / 07</div>
+  <div class="hint">← → naviqasiya · S qeydlər · F tam ekran</div>
+  <div class="navbtns">
+    <button id="prev" title="Əvvəlki">‹</button>
+    <button id="next" title="Növbəti">›</button>
+  </div>
+</div>
+
+<div id="notes"></div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const notes = document.getElementById('notes');
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let i = 0;
+  const pad = n => String(n).padStart(2, '0');
+
+  function render(){
+    slides.forEach((s, k) => s.classList.toggle('active', k === i));
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progress.style.width = ((i) / (slides.length - 1) * 100) + '%';
+    notes.innerHTML = slides[i].dataset.notes || '';
+    location.hash = '#' + (i + 1);
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length - 1, n)); render(); }
+
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight','PageDown',' '].includes(e.key)) { e.preventDefault(); go(i + 1); }
+    else if (['ArrowLeft','PageUp'].includes(e.key)) { e.preventDefault(); go(i - 1); }
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(slides.length - 1);
+    else if (e.key.toLowerCase() === 's') document.body.classList.toggle('notes');
+    else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    }
+  });
+  document.getElementById('prev').onclick = () => go(i - 1);
+  document.getElementById('next').onclick = () => go(i + 1);
+  document.getElementById('notes').addEventListener('click', () => notes.innerHTML = slides[i].dataset.notes || '');
+
+  const start = parseInt((location.hash || '#1').slice(1), 10);
+  go(Number.isFinite(start) && start >= 1 ? start - 1 : 0);
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm install && npm install --prefix client",
+  "buildCommand": "npm run build --prefix client",
+  "outputDirectory": "client/dist",
+  "rewrites": [
+    { "source": "/api-docs.json", "destination": "/api/__docsjson" },
+    { "source": "/api-docs", "destination": "/api/__docs" },
+    { "source": "/api-docs/:path*", "destination": "/api/__docs/:path*" },
+    {
+      "source": "/:asset(swagger-ui\\.css|swagger-ui-bundle\\.js|swagger-ui-standalone-preset\\.js|swagger-ui-init\\.js|favicon-16x16\\.png|favicon-32x32\\.png)",
+      "destination": "/api/__asset/:asset"
+    },
+    { "source": "/:path((?!api/|api-docs|uploads/)(?!.*\\.).*)", "destination": "/index.html" }
+  ]
+}
