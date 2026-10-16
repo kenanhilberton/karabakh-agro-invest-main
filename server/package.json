@@ -13,6 +13,7 @@
     "test:watch": "node --watch --test test/**/*.test.js"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",

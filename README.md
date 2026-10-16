@@ -68,6 +68,10 @@ Swagger UI: **http://localhost:4000/api-docs**
 Layihə **Vercel** (frontend + serverless API) və **Neon** (PostgreSQL) üzərində
 canlıya çıxmağa hazırdır. Tam addım-addım təlimat: **[`DEPLOY.md`](./DEPLOY.md)**.
 
+Sənəd yükləmələri üçün serverless-də **Vercel Blob** store lazımdır
+(`BLOB_READ_WRITE_TOKEN`). Local olaraq (`npm run dev`) fayllar `server/uploads/`
+qovluğuna yazılır.
+
 ---
 
 ## Verilənlər bazası (PostgreSQL)

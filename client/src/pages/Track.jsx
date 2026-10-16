@@ -613,7 +613,7 @@ function DocumentsPanel({ app, onUpdated }) {
             setError('');
             setSaved(false);
           }}
-          hint="PDF, DOCX, XLSX, JPG, PNG · max 10 MB"
+          hint="PDF, DOCX, XLSX, JPG, PNG · max 4 MB"
         />
       </div>
 

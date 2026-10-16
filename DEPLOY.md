@@ -77,10 +77,27 @@ git push -u origin main
 | `DATABASE_URL` | Neon connection string | ✅ mütləq |
 | `JWT_SECRET` | ən azı 32 simvolluq təsadüfi sətir | ✅ mütləq |
 | `NODE_ENV` | `production` | ✅ |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob store açarı | ✅ sənəd yükləməsi üçün |
 | `GROQ_API_KEY` | pulsuz açar (console.groq.com) | ⭐ tövsiyə |
 
 > ❌ **`PG_MODE` TƏYİN ETMƏ!** Əgər `PG_MODE=memory` qoysanız, baza yaddaşda
 > olacaq və **hər restartda bütün məlumat silinəcək**.
+
+### Vercel Blob — sənəd yükləmələri
+
+Serverless-də disk qalıcı deyil, ona görə yüklənən sənədlər **Vercel Blob**-da
+saxlanılır. Quruluş (pulsuzdur):
+
+1. Vercel layihəsi → **Storage** bölməsi → **Create Blob**
+2. **Public** store yarat (ad məs. `kai-docs`) — `BLOB_READ_WRITE_TOKEN` avtomatik
+   əməliyyat mühitinə yazılır
+3. **Deploy** → yenidən build et
+
+> Bu açar olmadıqda `/api/v1/upload` serverless-də `501` qaytarır. Lokalda
+> (`npm run dev`, Docker) fayllar köhnədəki kimi `server/uploads/` qovluğuna yazılır.
+>
+> Hədlər: fayl başına **4 MB**, müraciət başına 5 fayl.
+> İcazəli növlər: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, WEBP.
 
 `JWT_SECRET` yaratmaq üçün:
 ```powershell

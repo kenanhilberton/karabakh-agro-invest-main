@@ -19,7 +19,7 @@ import investmentRoutes from './routes/investments.js';
 import chatRoutes from './routes/chat.js';
 import advisorRoutes from './routes/advisor.js';
 import analyticsRoutes from './routes/analytics.js';
-import uploadRoutes from './routes/upload.js';
+import uploadRoutes, { UPLOADS_AVAILABLE } from './routes/upload.js';
 import notificationRoutes from './routes/notifications.js';
 import { openapiSpec } from './openapi.js';
 import { optionalAuth } from './middleware/auth.js';
@@ -55,12 +55,12 @@ app.use('/api/v1/investments', investmentRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/advisor', advisorRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
-// Fayl yükləmə yalnız diskli mühitdə mümkündür. Serverless-də aydın mesaj qaytarırıq.
-if (isServerless) {
+// Serverless-də disk qalıcı deyil — yalnız Vercel Blob (token) olduqda yükləmə aktivdir.
+if (!UPLOADS_AVAILABLE) {
   app.use('/api/v1/upload', (_req, res) => {
     res.status(501).json({
       error:
-        'Fayl yükləmə bu deploy mühitində (serverless) aktiv deyil. Sənədlərin saxlanması üçün S3 / Vercel Blob kimi obyekt anbarı lazımdır.'
+        'Fayl yükləmə bu deploy mühitində aktiv deyil. Serverless-də sənədlərin saxlanması üçün BLOB_READ_WRITE_TOKEN (Vercel Blob) təyin olunmalıdır.'
     });
   });
 } else {
