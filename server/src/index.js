@@ -19,7 +19,7 @@ import investmentRoutes from './routes/investments.js';
 import chatRoutes from './routes/chat.js';
 import advisorRoutes from './routes/advisor.js';
 import analyticsRoutes from './routes/analytics.js';
-import uploadRoutes from './routes/upload.js';
+import uploadRoutes, { UPLOADS_AVAILABLE } from './routes/upload.js';
 import notificationRoutes from './routes/notifications.js';
 import { openapiSpec } from './openapi.js';
 import { optionalAuth } from './middleware/auth.js';
@@ -29,6 +29,8 @@ import { assertConnection } from './db/pool.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+// Vercel (və ya digər serverless mühit) — disk qalıcı deyil, `listen` lazım deyil.
+const isServerless = Boolean(process.env.VERCEL);
 
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
@@ -53,19 +55,43 @@ app.use('/api/v1/investments', investmentRoutes);
 app.use('/api/v1/chat', chatRoutes);
 app.use('/api/v1/advisor', advisorRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
-app.use('/api/v1/upload', uploadLimiter, uploadRoutes);
+// Serverless-də disk qalıcı deyil — yalnız Vercel Blob (token) olduqda yükləmə aktivdir.
+if (!UPLOADS_AVAILABLE) {
+  app.use('/api/v1/upload', (_req, res) => {
+    res.status(501).json({
+      error:
+        'Fayl yükləmə bu deploy mühitində aktiv deyil. Serverless-də sənədlərin saxlanması üçün BLOB_READ_WRITE_TOKEN (Vercel Blob) təyin olunmalıdır.'
+    });
+  });
+} else {
+  app.use('/api/v1/upload', uploadLimiter, uploadRoutes);
+}
 app.use('/api/v1/notifications', notificationRoutes);
 
+const swaggerPage = swaggerUi.setup(openapiSpec, { customSiteTitle: 'KarabakhAgroInvest API' });
+
 app.get('/api-docs.json', (_req, res) => res.json(openapiSpec));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec, { customSiteTitle: 'KarabakhAgroInvest API' }));
+// Dəqiq `/api-docs` marşrutu: `serve-static`-in `/api-docs/`-ə 301 yönləndirməsinin
+// qarşısını alır (serverless-də trailing-slash problemlərini aradan qaldırır).
+app.get('/api-docs', swaggerPage);
+app.use('/api-docs', swaggerUi.serve, swaggerPage);
 
-// Serve uploaded files
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-app.use('/uploads', express.static(UPLOAD_DIR));
+// Swagger UI nisbi `./swagger-ui.css` yolları yaradır — səhifə `/api-docs` olduqda
+// brauzer onları kökdən istəyir. `swaggerUi.serve` `index:false` ilə işlədiyi üçün
+// kökdə mount etmək `/` marşrutunu tutmur, sadəcə asset-ləri (və generasiya olunan
+// `swagger-ui-init.js`-i) verir.
+app.use(swaggerUi.serve);
 
-// Serve the built React client if present (single-service demo mode)
+// Uploaded files (yalnız diskli mühitdə)
+if (!isServerless) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  app.use('/uploads', express.static(UPLOAD_DIR));
+}
+
+// Serve the built React client if present (single-service demo mode).
+// On Vercel the frontend is served by the CDN, so this block is skipped.
 const clientDist = CLIENT_DIST;
-if (fs.existsSync(clientDist)) {
+if (!isServerless && fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get(/^(?!\/api|\/api-docs).*/, (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
@@ -97,7 +123,7 @@ app.use((err, req, res, _next) => {
   res.status(status).json({ error: message });
 });
 
-async function start() {
+async function boot() {
   try {
     const conn = await assertConnection();
     console.log(`  PostgreSQL bağlantısı OK  ->  ${conn.db} (${String(conn.version).split(' ').slice(0, 2).join(' ')})`);
@@ -105,13 +131,24 @@ async function start() {
   } catch (e) {
     console.error('\n  DB başlatma xətası:', e.message);
     console.error('  server/.env faylındakı PG* dəyərlərini yoxlayın (host/port/user/password/database).\n');
-    process.exit(1);
+    throw e;
   }
+}
 
+async function start() {
+  await boot();
   app.listen(PORT, () => {
     console.log(`\n  KarabakhAgroInvest API  ->  http://localhost:${PORT}`);
     console.log(`  Swagger UI              ->  http://localhost:${PORT}/api-docs\n`);
   });
 }
 
-start();
+// Serverless (Vercel) rejimdə app export olunur, `listen` işləməməlidir.
+// Top-level await-dən qaçmaq üçün bazanın hazırlanması ilk sorğuya saxlanılır:
+// `api/[...path].js` handler-i `boot()`-u bir dəfə çağırır.
+if (!isServerless) {
+  start().catch(() => process.exit(1));
+}
+
+export default app;
+export { app, boot };

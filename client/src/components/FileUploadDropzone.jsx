@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api } from '../api.js';
 import Icon from './Icon.jsx';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
 
 // Drag & drop / click file picker. Files are uploaded **one per request** so a
 // single multipart body always stays below serverless body limits.
@@ -15,7 +15,7 @@ export default function FileUploadDropzone({ files = [], onFilesChange, hint }) 
     const accepted = [];
     for (const file of fileList) {
       if (file.size > MAX_FILE_SIZE) {
-        setUploadError(`${file.name}: fayl həcmi 10 MB-dan böyük ola bilməz`);
+        setUploadError(`${file.name}: fayl həcmi 4 MB-dan böyük ola bilməz`);
         continue;
       }
       accepted.push(file);
@@ -78,7 +78,7 @@ export default function FileUploadDropzone({ files = [], onFilesChange, hint }) 
             {uploading ? 'Fayllar yüklənir…' : 'Faylları buraya sürükləyin və ya klikləyin'}
           </span>
           <span className="text-xs text-slate-400">
-            {hint || 'PDF, DOCX, XLSX, JPG, PNG · max 10 MB · 5 fayl'}
+            {hint || 'PDF, DOCX, XLSX, JPG, PNG · max 4 MB · 5 fayl'}
           </span>
         </div>
       </label>
