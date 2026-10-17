@@ -5,3 +5,6 @@ uploads/
 *.log
 .env
 .DS_Store
+
+.vercel
+.env*

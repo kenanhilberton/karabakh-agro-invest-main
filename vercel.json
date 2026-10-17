@@ -5,6 +5,7 @@
   "buildCommand": "npm run build --prefix client",
   "outputDirectory": "client/dist",
   "rewrites": [
+    { "source": "/api/:first/:rest+", "destination": "/api/:first?__rest=:rest" },
     { "source": "/api-docs.json", "destination": "/api/__docsjson" },
     { "source": "/api-docs", "destination": "/api/__docs" },
     { "source": "/api-docs/:path*", "destination": "/api/__docs/:path*" },
