@@ -25,6 +25,11 @@ function ensureReady() {
 }
 
 // Rewrite ilə gələn `?__rest=v1/lands` hissəsini orijinal yola çevirir.
+//
+// QEYD (vacib): Vercel rewrite zamanı bəzən pathname-i saxlayır, bəzən isə
+// `/api/:first`-ə endirir — hər iki hal baş verib. Ona görə əməliyyat
+// İDENTİKDİR: `rest` yola artıq daxildirsə, ikinci dəfə əlavə etmirik.
+// Əks halda `/api/v1/lands` → `/api/v1/lands/lands` kimi qat-qatlanırdı.
 function restorePath(raw) {
   const qIndex = raw.indexOf('?');
   const rawPath = qIndex === -1 ? raw : raw.slice(0, qIndex);
@@ -34,12 +39,16 @@ function restorePath(raw) {
   if (!rest) return { path: rawPath, search: params, restored: false };
 
   params.delete('__rest');
-  params.delete('path'); // Vercel-in dinamik marşrut parametri
-  return {
-    path: rawPath + '/' + decodeURIComponent(rest),
-    search: params,
-    restored: true
-  };
+  // Vercel-in dinamik marşrut parametrlərini təmizlə (`path`, `...path` və s.)
+  for (const key of [...params.keys()]) {
+    if (key.includes('path')) params.delete(key);
+  }
+
+  const decoded = decodeURIComponent(rest).replace(/^\/+/, '');
+  const base = rawPath.replace(/\/+$/, '');
+  // Yol artıq `rest` ilə bitirsə — olduğu kimi saxlayırıq (qatlama yoxdur).
+  const path = base.endsWith(`/${decoded}`) ? base : `${base}/${decoded}`;
+  return { path, search: params, restored: true };
 }
 
 export default async function handler(req, res) {
